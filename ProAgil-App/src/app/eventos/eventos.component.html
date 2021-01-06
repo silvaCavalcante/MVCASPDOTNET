@@ -1,3 +1,5 @@
+<br>
+<app-titulo [titulo]=titulo></app-titulo>
 <div class="d-flex">
   <div class="form-inline mr-auto">
     <!--action="" -->
@@ -121,9 +123,13 @@
                 O local é obrigatório
               </div>
             </div>
+            <!--value="{{dataEvento | DateTimeFormatPipe}}" 
+              [(ngModel)]="dataEvento" -->
             <div class="form-group col-md-4">
               <label>Data e Hora</label>
-              <input type="text" class="form-control" bsDatepicker [bsConfig]="{ dateInputFormat: 'DD/MM/YYYY hh:mm a'}"
+              <input type="text" class="form-control" 
+              bsDatepicker 
+              [bsConfig]="{ dateInputFormat: 'DD/MM/YYYY hh:mm a'}"
                 [ngClass]="{'is-invalid': registerForm.get('dataEvento').errors && registerForm.get('dataEvento').touched}"
                 formControlName="dataEvento" placeholder="">
               <div *ngIf="registerForm.get('dataEvento').hasError('required') 
