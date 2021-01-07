@@ -14,10 +14,9 @@ defineLocale('pt-br', ptBrLocale);
 @Component({
   selector: 'app-eventos',
   templateUrl: './eventos.component.html',
-  styleUrls: ['./eventos.component.scss']
+  styleUrls: ['./eventos.component.scss'],
 })
 export class EventosComponent implements OnInit {
-
   titulo = 'Eventos';
 
   eventosFiltrados: Evento[];
@@ -31,37 +30,44 @@ export class EventosComponent implements OnInit {
   registerForm: FormGroup;
   bodyDeletarEvento = '';
 
+  file: File;
+  fileNameToUdate: string;
+  dataAtual: string;
+
   _filtroLista = '';
 
   constructor(
-    private eventoService: EventoService
-    , private modalService: BsModalService
-    , private fb: FormBuilder
-    , private localService: BsLocaleService
-    , private toastr: ToastrService
+    private eventoService: EventoService,
+    private modalService: BsModalService,
+    private fb: FormBuilder,
+    private localService: BsLocaleService,
+    private toastr: ToastrService
   ) {
     this.localService.use('pt-br');
   }
-
-
 
   get filtroLista(): string {
     return this._filtroLista;
   }
   set filtroLista(value: string) {
     this._filtroLista = value;
-    this.eventosFiltrados = this.filtroLista ? this.filtrarEventos(this.filtroLista) : this.eventos;
+    this.eventosFiltrados = this.filtroLista
+      ? this.filtrarEventos(this.filtroLista)
+      : this.eventos;
   }
 
   editarEvento(evento: Evento, template: any) {
     this.modoSalvar = 'put';
     this.openModal(template);
-    this.evento = evento;
-    this.registerForm.patchValue(evento);
+    this.evento = Object.assign({}, evento);
+    this.fileNameToUdate = evento.imagemUrl.toString();
+
+    this.evento.imagemUrl = '';
+    this.registerForm.patchValue(this.evento);
   }
 
   novoEvento(template: any) {
-    this.modoSalvar = "post";
+    this.modoSalvar = 'post';
     this.openModal(template);
   }
 
@@ -74,22 +80,20 @@ export class EventosComponent implements OnInit {
   confirmeDelete(template: any) {
     this.eventoService.deleteEvento(this.evento.id).subscribe(
       () => {
-          template.hide();
-          this.getEventos();
-          this.toastr.success('Deletado com Sucesso');
-        }, error => {
-          this.toastr.error('Erro ao tentar deletar');
-        }
+        template.hide();
+        this.getEventos();
+        this.toastr.success('Deletado com Sucesso');
+      },
+      (error) => {
+        this.toastr.error('Erro ao tentar deletar');
+      }
     );
   }
-
-
 
   openModal(template: any) {
     this.registerForm.reset();
     template.show();
   }
-
 
   ngOnInit() {
     this.validation();
@@ -99,10 +103,9 @@ export class EventosComponent implements OnInit {
   filtrarEventos(filtrarPor: string): Evento[] {
     filtrarPor = filtrarPor.toLocaleLowerCase();
     return this.eventos.filter(
-      evento => evento.tema.toLocaleLowerCase().indexOf(filtrarPor) !== -1
+      (evento) => evento.tema.toLocaleLowerCase().indexOf(filtrarPor) !== -1
     );
   }
-
 
   alternarImagem() {
     this.mostrarImagem = !this.mostrarImagem;
@@ -110,39 +113,95 @@ export class EventosComponent implements OnInit {
 
   validation() {
     this.registerForm = this.fb.group({
-      tema: ['', [Validators.required, Validators.minLength(4), Validators.maxLength(50)]],
-      local: ['', [Validators.required, Validators.minLength(4), Validators.maxLength(50)]],
+      tema: [
+        '',
+        [
+          Validators.required,
+          Validators.minLength(4),
+          Validators.maxLength(50),
+        ],
+      ],
+      local: [
+        '',
+        [
+          Validators.required,
+          Validators.minLength(4),
+          Validators.maxLength(50),
+        ],
+      ],
       dataEvento: ['', Validators.required],
       qntPessoas: ['', [Validators.required, Validators.max(120000)]],
       imagemUrl: ['', Validators.required],
       telefone: ['', Validators.required],
-      email: ['', [Validators.required, Validators.email]]
+      email: ['', [Validators.required, Validators.email]],
     });
+  }
+
+  onFileChange(event) {
+    const reader = new FileReader();
+    if (event.target.files && event.target.files.length) {
+      this.file = event.target.files;
+      console.log(this.file);
+    }
+  }
+
+  uploadImagem() {
+    if (this.modoSalvar === 'post') {
+      const nomeArquivo = this.evento.imagemUrl.split('\\', 3);
+      this.evento.imagemUrl = nomeArquivo[2];
+
+      this.eventoService.postUpload(this.file, nomeArquivo[2])
+      .subscribe(
+        () => {
+          this.dataAtual = new Date().getMilliseconds.toString();
+          this.getEventos();
+        }
+      );
+    }else {
+      this.evento.imagemUrl = this.fileNameToUdate;
+      this.eventoService.postUpload(this.file, this.fileNameToUdate)
+      .subscribe(
+        () => {
+          this.dataAtual = new Date().getMilliseconds.toString();
+          this.getEventos();
+        }
+      );
+    }
   }
 
   salvarAlteracao(template: any) {
     if (this.registerForm.valid) {
       if (this.modoSalvar === 'post') {
         this.evento = Object.assign({}, this.registerForm.value);
+
+        this.uploadImagem();
+
         this.eventoService.postEvento(this.evento).subscribe(
           (novoEvento: Evento) => {
             console.log(novoEvento);
             template.hide();
             this.getEventos();
             this.toastr.success('Salvo com Sucesso');
-          }, error => {
+          },
+          (error) => {
             console.log(error);
             this.toastr.error(`Erro ao tentar salvar: ${error}`);
           }
         );
       } else {
-        this.evento = Object.assign({id: this.evento.id}, this.registerForm.value);
+        this.evento = Object.assign(
+          { id: this.evento.id },
+          this.registerForm.value
+        );
+        this.uploadImagem();
+
         this.eventoService.putEvento(this.evento).subscribe(
           () => {
             template.hide();
             this.getEventos();
             this.toastr.success('Editado com Sucesso');
-          }, error => {
+          },
+          (error) => {
             console.log(error);
             this.toastr.error(`Erro ao tentar editar: ${error}`);
           }
@@ -151,13 +210,13 @@ export class EventosComponent implements OnInit {
     }
   }
 
-
   getEventos() {
     this.eventoService.getAllEvento().subscribe(
       (_eventos: Evento[]) => {
         this.eventos = _eventos;
-        this.eventosFiltrados = this.eventos
-      }, error => {
+        this.eventosFiltrados = this.eventos;
+      },
+      (error) => {
         console.log(error);
         this.toastr.error(`Erro ao receber eventos: ${error}`);
       }
