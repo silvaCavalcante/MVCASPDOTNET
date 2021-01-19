@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaderResponse, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { Evento } from '../_models/Evento';
@@ -8,6 +8,7 @@ import { Evento } from '../_models/Evento';
 })
 export class EventoService {
   baseURL = 'http://localhost:5000/api/evento/';
+ 
 
 constructor(private http: HttpClient) { }
 
